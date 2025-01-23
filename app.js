@@ -1,9 +1,8 @@
 import express, {request, response} from "express";
 import session from "express-session";
-import bodyParser from "body-parser";
 import {v4 as uuidv4} from 'uuid';
 import os from "os";
-import res from "express/lib/response";
+
 const app = express();
 const PORT = 3000;
 
@@ -51,7 +50,7 @@ app.post('/login', (req, res)=>{
     }
     const sessionID=uuidv4();
     const now= new Date();
-    session[sessionID] ={
+    sessions[sessionID] ={
         sessionID,
         email,
         nickname,
@@ -65,7 +64,7 @@ app.post('/login', (req, res)=>{
         sessionID,
         });
 });
-app.post('logout',(req, res)=>{
+app.post('/logout',(req, res)=>{
     const {sessionID}=req.body;
 
     if(!sessionID || !sessions[sessionID]){
@@ -80,24 +79,25 @@ app.post('logout',(req, res)=>{
     })
     res.status(200).json({message:"logout successfull"})
 });
-app.post('/update',(req, res)=>{
-    const{email, nickname, sessionID}= req.body;
+app.put('/update',(req, res)=>{
+    const{sessionID}= req.body;
     if(!sessionID || !sessions[sessionID]){
         return res.status(404).json({message: "No se ha encontrado una sesion activa"})
     }
-    if(email) sessions[sessionID].email=email;
-    if(nickname) sessions[sessionID].nickname=nickname;
-        IdleDeadline()
-        sessions[sessionID].lastAcceses= newDate();
-})
+    sessions[sessionID].lastAccessed = new Date();
+    res.send.json({message:"Sesion actualizada",session: req.session.user});
+    // if(email) sessions[sessionID].email=email;
+    // if(nickname) sessions[sessionID].nickname=nickname;
+    // sessions[sessionID].lastAcceses= newDate();
+});
 
 app.get('/status', (req, res)=>{
     const sessionID=req.query.sessionID;
     if(!sessionID || !sessions[sessionID]){
-        res.res.status(404).json({message:"No hay sesiones activas"})
+        res.status(404).json({message:"No hay sesiones activas"})
     }
-    res.status(200).json({
+        res.status(200).json({
         message: "Sesion activa",
         session:sessions[sessionID]
     })
-})
+});
