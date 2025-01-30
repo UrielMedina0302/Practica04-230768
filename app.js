@@ -4,7 +4,7 @@ import {v4 as uuidv4} from 'uuid';
 import os from "os";
 
 const app = express();
-const PORT = 3000;
+const PORT = 3100;
 
 app.listen(PORT, ()=>{
     console.log(`Servidor iniciado en http://localhost:${PORT}`)
@@ -56,7 +56,7 @@ app.post('/login', (req, res)=>{
         nickname,
         macAddress,
         ip: getLocalIP(req),
-        createAt: now,
+        createdAt: now,
         lastAccesed:now
     };
     res.status(200).json({
@@ -75,9 +75,11 @@ app.post('/logout',(req, res)=>{
     req.session.destroy((err)=>{
         if(err){
             return res.status(500).send('Error al cerrar sesion')
+        }else{
+            res.status(200).json({message:"logout successfull"})
         }
     })
-    res.status(200).json({message:"logout successfull"})
+    
 });
 app.put('/update',(req, res)=>{
     const{sessionID}= req.body;
@@ -91,13 +93,41 @@ app.put('/update',(req, res)=>{
     // sessions[sessionID].lastAcceses= newDate();
 });
 
-app.get('/status', (req, res)=>{
-    const sessionID=req.query.sessionID;
-    if(!sessionID || !sessions[sessionID]){
-        res.status(404).json({message:"No hay sesiones activas"})
+app.get('/status', (req, res) => {
+    const {sessionID} = req.query.sessionID;
+    if (!sessionID || !sessions[sessionID]) {
+        return res.status(404).json({ message: "No hay sesiones activas" });
     }
-        res.status(200).json({
-        message: "Sesion activa",
-        session:sessions[sessionID]
-    })
+
+    const session = sessions[sessionID];
+    if (session.createdAt) {
+        const now = new Date();
+        const started = new Date(session.createdAt);
+        const lastUpdate = new Date(session.lastAccessed);
+        const name = session.nickname;
+
+        // Calcular antigüedad de la sesión
+        const sessionAgeMs = now - started;
+        const hours = Math.floor(sessionAgeMs / (1000 * 60 * 60));
+        const minutes = Math.floor((sessionAgeMs % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((sessionAgeMs % (1000 * 60)) / 1000);
+
+        // Convertir las fechas al uso horario de CDMX
+        const createdAT_MX = moment(started).tz('America/Mexico_City').format('YYYY-MM-DD HH:mm:ss');
+        const lastAccess_MX = moment(lastUpdate).tz('America/Mexico_City').format('YYYY-MM-DD HH:mm:ss');
+
+        return res.json({
+            mensaje: 'Estado de la sesión',
+            SessionId: sessionID,
+            Usuario: name,
+            inicio: createdAT_MX,
+            ultimoAcceso: lastAccess_MX,
+            antiguedad: `${hours} horas, ${minutes} minutos y ${seconds} segundos`,
+        });
+    }
+
+    res.status(200).json({
+        message: "Sesión activa",
+        session: session
+    });
 });
